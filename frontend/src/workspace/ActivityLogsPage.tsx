@@ -1,0 +1,21 @@
+import { useState } from 'react';
+import { Download, ScrollText } from 'lucide-react';
+import { authErrorMessage, clearRequestScope, workspaceDownload } from '../services/api';
+import { triggerBrowserDownload } from '../utils/downloadHelper';
+import { useAuth } from './AuthContext';
+import { useWorkspaceData } from './management';
+
+interface LogItem {id:string;timestamp:string;action:string;actor_user_id:string;actor_name:string;actor_email:string;entity_type:string;entity_id:string;metadata:Record<string,unknown>}
+interface LogData {items:LogItem[];has_more:boolean;can_filter_people:boolean;actors:{user_id:string;name:string;email:string;role:string;status:string}[]}
+
+export function ActivityLogsPage(){
+ const {profile}=useAuth();const [selected,setSelected]=useState(''),[actor,setActor]=useState(''),[page,setPage]=useState(1),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const workspace=profile?.workspaces.find(w=>w.id===selected)||profile?.workspaces[0];
+ if(!workspace)return <main className="workspace-settings"><h1>Activity logs</h1><p>No active workspace.</p></main>;
+ return <main className="workspace-settings logs-page"><div className="management-heading"><div><p className="auth-eyebrow">AUDIT TRAIL</p><h1>Activity logs</h1><p className="settings-intro">Review who changed workspace access, clients and reconciliation records.</p></div><label className="workspace-picker">Workspace<select value={workspace.id} onChange={e=>{clearRequestScope();setSelected(e.target.value);setActor('');setPage(1);}}>{profile?.workspaces.map(w=><option value={w.id} key={w.id}>{w.name}</option>)}</select></label></div><LogContent key={`${workspace.id}:${actor}:${page}`} workspace={workspace} actor={actor} page={page} setActor={value=>{setActor(value);setPage(1);}} setPage={setPage} busy={busy} error={error} download={async()=>{setBusy(true);setError('');try{const query=actor?`?actor_user_id=${encodeURIComponent(actor)}`:'';const file=await workspaceDownload(`${workspace.id}/logs/export${query}`,'aligned-audit-log.csv');triggerBrowserDownload(file.blob,file.filename);}catch(e){setError(authErrorMessage(e));}finally{setBusy(false);}}}/></main>;
+}
+
+function LogContent({workspace,actor,page,setActor,setPage,busy,error,download}:{workspace:{id:string;type:string;role:string};actor:string;page:number;setActor:(v:string)=>void;setPage:(v:number)=>void;busy:boolean;error:string;download:()=>Promise<void>}){
+ const query=actor?`&actor_user_id=${encodeURIComponent(actor)}`:'';const logs=useWorkspaceData<LogData>(`${workspace.id}/logs?page=${page}${query}`);
+ return <><div className="logs-toolbar">{logs.data?.can_filter_people?<label className="log-filter">Employee<select aria-label="Employee log filter" value={actor} onChange={e=>setActor(e.target.value)}><option value="">All employees</option>{logs.data.actors.map(person=><option value={person.user_id} key={person.user_id}>{person.name} · {person.role}{person.status==='REMOVED'?' · Removed':''}</option>)}</select></label>:<span>Showing activity available to your role</span>}<button disabled={busy} onClick={()=>void download()}><Download size={16}/>{busy?'Exporting…':'Export CSV'}</button></div>{error&&<p role="alert" className="auth-notice">{error}</p>}{logs.error&&<p role="alert" className="auth-notice">{logs.error}<button onClick={logs.reload}>Retry</button></p>}{!logs.data&&!logs.error?<p role="status">Loading audit events…</p>:logs.data&&!logs.data.items.length?<section className="management-empty"><ScrollText/><h2>No activity recorded</h2><p>Events will appear as the workspace is used.</p></section>:logs.data&&<><div className="log-list">{logs.data.items.map(item=><article key={item.id}><span className="log-icon"><ScrollText size={17}/></span><div><strong>{item.action.replaceAll('_',' ')}</strong><p>{item.actor_name}{item.actor_email?` · ${item.actor_email}`:''}</p><small>{item.entity_type}{item.entity_id?` · ${item.entity_id}`:''}</small></div><time dateTime={item.timestamp}>{new Date(item.timestamp).toLocaleString()}</time></article>)}</div><nav className="management-pager" aria-label="Log pagination"><button disabled={page===1} onClick={()=>setPage(page-1)}>Previous</button><span>Page {page}</span><button disabled={!logs.data.has_more} onClick={()=>setPage(page+1)}>Next</button></nav></>}</>;
+}

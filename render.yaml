@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: aligned-end-term-api
+    runtime: python
+    plan: free
+    autoDeploy: false
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: AUTH_ENABLED
+        value: "true"
+      - key: AUTH_RECONCILIATION_ENABLED
+        value: "true"
+      - key: ALLOW_DEMO_MODE
+        value: "false"
+      - key: SESSION_STORE_BACKEND
+        value: postgres
+      - key: SESSION_TTL_SECONDS
+        value: "3600"
+      - key: OBJECT_STORAGE_BACKEND
+        value: local
+      - key: REQUIRE_S3_OBJECT_STORAGE
+        value: "false"
+      - key: ARTIFACT_DELIVERY_PROVIDER
+        value: backend
+      - key: AUTH_SECRET
+        sync: false
+      - key: AUTH_FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_ROLE
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false

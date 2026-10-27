@@ -1,0 +1,76 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+
+# Local runtime/session data
+backend/temp_sessions/
+temp_sessions/
+scratch/
+uploads/
+reports/
+artifacts/
+
+# Private local preservation of the inherited Phase 2 repository. This folder
+# must never be staged or published from the sanitized repository.
+.phase2-private-backup/
+
+# Generated reconciliation exports and QA output
+output/
+**/GSTR2B_Reconciliation*.xlsx
+**/GSTR2B_Reconciliation*.json
+scratch/qa_*
+scratch/*audit_output*
+scratch/trace_b2b_scope.py
+
+# Accounting inputs and tabular exports are private by default. The three
+# explicitly allowed legacy-XLS fixtures contain synthetic test records.
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.tsv
+!backend/tests/fixtures/xls/accounts_purchase.xls
+!backend/tests/fixtures/xls/gstr_2b.xls
+!backend/tests/fixtures/xls/debit_notes.xls
+
+# Environment files (safe examples remain trackable)
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Logs, local databases, and build output
+*.log
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+frontend/dist/
+node_modules/
+frontend/node_modules/
+*.bundle
+.DS_Store
+.idea/
+.vscode/
+
+
+/local_test_data/
+
+# Local-only real Tally evidence and derived accounting fixtures
+/backend/tests/fixtures/tallyprime/private/
+
+# Local database development and isolated verification
+/.venv/
+/scratch/db-test/
+/scratch/auth-mail/
