@@ -4,6 +4,12 @@ Aligned is a focused accounting-automation application that compares a purchase 
 
 The end-term deployment architecture is React 19 + TypeScript + Vite on Vercel, FastAPI on one Render web service, and a separate Supabase PostgreSQL/Auth project. Core reconciliation does not require AWS, S3, Redis, MSG91, a persistent disk, or a background worker.
 
+## Demo Video
+
+Watch the project demonstration:
+
+[Watch Aligned Demo](https://drive.google.com/drive/folders/1dUamvyDMd5L4_ufWUsIGZe4uNZlt3lDp?usp=drive_link)
+
 ## Core workflow
 
 1. Register or sign in through Supabase Auth.
