@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy.engine import URL, make_url
 
 
@@ -12,6 +13,17 @@ class DatabaseConfigurationError(RuntimeError):
 
 
 _SUPABASE_CA = Path(__file__).resolve().parents[2] / "certs" / "supabase-prod-ca-2021.crt"
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+
+def load_local_environment(path: Path | None = None) -> bool:
+    """Explicitly load local settings without overriding process configuration."""
+
+    hosted = bool(os.getenv("RENDER") or os.getenv("VERCEL"))
+    production = os.getenv("APP_ENV", "").strip().lower() == "production"
+    if hosted or production:
+        return False
+    return load_dotenv(path or _PROJECT_ROOT / ".env", override=False)
 
 
 def database_url(value: str, *, production: bool) -> URL:

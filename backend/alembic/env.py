@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import String
 from sqlmodel.sql.sqltypes import AutoString
 
-from backend.app.db.config import DatabaseSettings
+from backend.app.db.config import DatabaseSettings, load_local_environment
 from backend.app.db.models import DatabaseModel
 from backend.app.db.session import create_database_engine
 
@@ -37,6 +37,7 @@ def run_migrations_online():
         with context.begin_transaction():
             context.run_migrations()
         return
+    load_local_environment()
     engine = create_database_engine(DatabaseSettings.from_environment(migration=True))
     try:
         with engine.connect() as connection:

@@ -1,4 +1,5 @@
 from io import StringIO
+import os
 from pathlib import Path
 
 from alembic import command
@@ -6,7 +7,12 @@ from alembic.config import Config
 import pytest
 from sqlalchemy.pool import NullPool, QueuePool
 
-from backend.app.db.config import DatabaseConfigurationError, DatabaseSettings, database_url
+from backend.app.db.config import (
+    DatabaseConfigurationError,
+    DatabaseSettings,
+    database_url,
+    load_local_environment,
+)
 from backend.app.db.session import create_database_engine
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 @pytest.fixture(autouse=True)
 def database_environment(monkeypatch):
     for name in (
-        "DATABASE_URL", "MIGRATION_DATABASE_URL", "APP_ENV", "VERCEL",
+        "DATABASE_URL", "MIGRATION_DATABASE_URL", "APP_ENV", "RENDER", "VERCEL",
         "DB_POOL_SIZE", "DB_POOL_TIMEOUT_SECONDS", "DB_CONNECT_TIMEOUT_SECONDS",
         "DB_STATEMENT_TIMEOUT_MS", "DB_LOCK_TIMEOUT_MS",
     ):
@@ -27,6 +33,33 @@ def test_no_database_required_until_dependency_is_used():
     assert app is not None
     with pytest.raises(DatabaseConfigurationError, match="Set DATABASE_URL"):
         DatabaseSettings.from_environment()
+
+
+def test_local_environment_loads_root_file_without_overriding_process_values(monkeypatch, tmp_path):
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "DATABASE_URL=postgresql+psycopg://file-user:file-password@localhost/file-db\n"
+        "DB_POOL_SIZE=3\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://process-user:process-password@localhost/process-db")
+
+    assert load_local_environment(env_file)
+    settings = DatabaseSettings.from_environment()
+
+    assert settings.url.username == "process-user"
+    assert settings.url.database == "process-db"
+    assert settings.pool_size == 3
+
+
+@pytest.mark.parametrize("name,value", [("RENDER", "true"), ("VERCEL", "1"), ("APP_ENV", "production")])
+def test_hosted_or_production_environment_never_loads_local_file(name, value, monkeypatch, tmp_path):
+    env_file = tmp_path / ".env"
+    env_file.write_text("DATABASE_URL=postgresql+psycopg://file-user:secret@localhost/file-db\n", encoding="utf-8")
+    monkeypatch.setenv(name, value)
+
+    assert load_local_environment(env_file) is False
+    assert "DATABASE_URL" not in os.environ
 
 
 def test_url_selection_does_not_leak_credentials(monkeypatch):
